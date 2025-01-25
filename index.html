@@ -137,25 +137,25 @@
             const maxPlayersPerRoom = 8;
             const combinations = new Set();
 
-            function distributePlayers(playersLeft, roomIndex, currentCombination) {
-    if (roomIndex === rooms) {
-        if (playersLeft === 0) {
-            const sortedCombination = [...currentCombination].sort((a, b) => b - a).join(',');
-            combinations.add(sortedCombination);
-        }
-        return;
-    }
+                function distributePlayers(playersLeft, roomIndex, currentCombination) {
+                    if (roomIndex === rooms) {
+                        if (playersLeft === 0) {
+                            const sortedCombination = [...currentCombination].sort((a, b) => b - a).join(',');
+                            combinations.add(sortedCombination);
+                        }
+                        return;
+                    }
 
-    // Bepaal de maximale spelers voor deze kamer
-    const roomMaxPlayers = roomIndex === 0 ? 6 : maxPlayersPerRoom; // Kamer 0 heeft max 6 spelers
+                    // Bepaal de maximale spelers voor deze kamer
+                    const roomMaxPlayers = roomIndex === 5 ? 6 : maxPlayersPerRoom; // Kamer 0 heeft max 6 spelers
 
-    for (let i = 2; i <= roomMaxPlayers; i++) {
-        if (playersLeft - i >= 0) {
-            currentCombination[roomIndex] = i;
-            distributePlayers(playersLeft - i, roomIndex + 1, currentCombination);
-        }
-    }
-}
+                    for (let i = 2; i <= roomMaxPlayers; i++) {
+                        if (playersLeft - i >= 0) {
+                            currentCombination[roomIndex] = i;
+                            distributePlayers(playersLeft - i, roomIndex + 1, currentCombination);
+                        }
+                    }
+                }
 
             distributePlayers(players, 0, Array(rooms).fill(0));
 
@@ -172,7 +172,6 @@
             const filteredOptions = distributionType === 'fair'
                 ? options.filter(option => option.fairness === 0).slice(0, 5)
                 : options;
-
             if (filteredOptions.length === 0) {
                 const nextBestOptions = options.sort((a, b) => a.fairness - b.fairness || a.totalCost - b.totalCost).slice(0, 5);
                 if (nextBestOptions.length === 0) {
