@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rüther Rekenhulp</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            background: #6c5ce7;
+            color: #fff;
+            padding: 1rem 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2rem;
+            color: #6c5ce7;
+        }
+        p {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        input, select, button {
+            font-size: 1rem;
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #6c5ce7;
+            color: #fff;
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5a4bcf;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .results p {
+            background: #f4f4f9;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background: #f4f4f9;
+            color: #999;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Rüther Rekenhulp</h1>
+    </header>
+    <div class="container">
+        <p>Voer het aantal spelers in:</p>
+        <input type="number" id="players" placeholder="Aantal spelers" min="2">
+        <p>Voer het aantal kamers in:</p>
+        <input type="number" id="rooms" placeholder="Aantal kamers" min="1">
+        <p>Kies een dag:</p>
+        <select id="dayType">
+            <option value="week">Doordeweeks (Maandag t/m Donderdag)</option>
+            <option value="weekend">Weekend (Vrijdag t/m Zondag)</option>
+        </select>
+        <p>Kies een verdeling:</p>
+        <select id="distributionType">
+            <option value="fair">Eerlijk verdeeld</option>
+            <option value="all">Alle opties</option>
+        </select>
+        <button onclick="calculateCosts()">Bereken opties</button>
+
+        <div class="results" id="results"></div>
+    </div>
+    <footer>
+        © 2025 Rüther Rekenhulp - Alle rechten voorbehouden
+    </footer>
+    <script>
+        const costs = {
+            week: [
+                { players: 2, cost: 48 },
+                { players: 3, cost: 34 },
+                { players: 4, cost: 28 },
+                { players: 5, cost: 24 },
+                { players: 6, cost: 22 },
+                { players: 7, cost: 20 },
+                { players: 8, cost: 19 }
+            ],
+            weekend: [
+                { players: 2, cost: 50 },
+                { players: 3, cost: 38 },
+                { players: 4, cost: 32 },
+                { players: 5, cost: 27 },
+                { players: 6, cost: 24 },
+                { players: 7, cost: 22 },
+                { players: 8, cost: 20 }
+            ]
+        };
+
+        function calculateCosts() {
+            const players = parseInt(document.getElementById('players').value);
+            const rooms = parseInt(document.getElementById('rooms').value);
+            const dayType = document.getElementById('dayType').value;
+            const distributionType = document.getElementById('distributionType').value;
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (isNaN(players) || players < 2 || isNaN(rooms) || rooms < 1) {
+                resultsDiv.innerHTML = '<p>Voer een geldig aantal spelers (minimaal 2) en kamers (minimaal 1) in.</p>';
+                return;
+            }
+
+            const maxPlayersPerRoom = 8;
+            const combinations = new Set();
+
+            function distributePlayers(playersLeft, roomIndex, currentCombination) {
+    if (roomIndex === rooms) {
+        if (playersLeft === 0) {
+            const sortedCombination = [...currentCombination].sort((a, b) => b - a).join(',');
+            combinations.add(sortedCombination);
+        }
+        return;
+    }
+
+    // Bepaal de maximale spelers voor deze kamer
+    const roomMaxPlayers = roomIndex === 0 ? 6 : maxPlayersPerRoom; // Kamer 0 heeft max 6 spelers
+
+    for (let i = 2; i <= roomMaxPlayers; i++) {
+        if (playersLeft - i >= 0) {
+            currentCombination[roomIndex] = i;
+            distributePlayers(playersLeft - i, roomIndex + 1, currentCombination);
+        }
+    }
+}
+
+            distributePlayers(players, 0, Array(rooms).fill(0));
+
+            const options = Array.from(combinations).map(combStr => {
+                const comb = combStr.split(',').map(Number);
+                const totalCost = comb.reduce((sum, numPlayers) => {
+                    const costPerPlayer = costs[dayType].find(c => c.players === numPlayers).cost;
+                    return sum + costPerPlayer * numPlayers;
+                }, 0);
+                const fairness = Math.max(...comb) - Math.min(...comb);
+                return { comb, totalCost, fairness };
+            }).sort((a, b) => a.totalCost - b.totalCost || a.fairness - b.fairness);
+
+            const filteredOptions = distributionType === 'fair'
+                ? options.filter(option => option.fairness === 0).slice(0, 5)
+                : options;
+
+            if (filteredOptions.length === 0) {
+                const nextBestOptions = options.sort((a, b) => a.fairness - b.fairness || a.totalCost - b.totalCost).slice(0, 5);
+                if (nextBestOptions.length === 0) {
+                    resultsDiv.innerHTML = '<p>Geen verdelingen mogelijk met het opgegeven aantal spelers en kamers.</p>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = '<p>Geen volledig eerlijke verdelingen mogelijk. Hier zijn de meest gelijk verdeelde opties:</p>';
+                nextBestOptions.forEach((option, index) => {
+                    resultsDiv.innerHTML += `<p>Optie ${index + 1}: Kamers: ${option.comb.join(', ')} spelers | Totale kosten: €${option.totalCost},-</p>`;
+                });
+                return;
+            }
+
+            filteredOptions.forEach((option, index) => {
+                resultsDiv.innerHTML += `<p>Optie ${index + 1}: Kamers: ${option.comb.join(', ')} spelers | Totale kosten: €${option.totalCost},-</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
